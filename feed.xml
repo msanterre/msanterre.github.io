@@ -6,9 +6,126 @@
 </description>
     <link>http://alpacalunchbox.com/</link>
     <atom:link href="http://alpacalunchbox.com/feed.xml" rel="self" type="application/rss+xml"/>
-    <pubDate>Sun, 17 Apr 2016 21:26:45 -0700</pubDate>
-    <lastBuildDate>Sun, 17 Apr 2016 21:26:45 -0700</lastBuildDate>
+    <pubDate>Thu, 05 May 2016 23:47:04 -0700</pubDate>
+    <lastBuildDate>Thu, 05 May 2016 23:47:04 -0700</lastBuildDate>
     <generator>Jekyll v3.1.2</generator>
+    
+      <item>
+        <title>Hosting web applications on CoreOS fleet and AWS</title>
+        <description>&lt;p&gt;If you haven’t checked out CoreOS and fleet, you should definitely do so right now. I’ve tried all of the docker orchestration services, and so
+far it has been the most reliable and barebones way to host your application. Kubernetes and Swarm have really nice utilities, but if those utilities fail or don’t work one day while your live application is running, you’re kind of screwed.&lt;/p&gt;
+
+&lt;p&gt;I’ll go into more detail of CoreOS later on, but for now here’s an easy way of setting up your web app on a fleet machine.&lt;/p&gt;
+
+&lt;p&gt;Your service file should look something like this:&lt;/p&gt;
+
+&lt;p&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;sampleweb@.service&lt;/code&gt;&lt;/p&gt;
+
+&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;Description=Sample Web App
+After=docker.service
+Requires=docker.service
+
+[Service]
+User=core
+Restart=always
+
+ExecStartPre=-/usr/bin/docker stop sampleweb-%i
+ExecStartPre=-/usr/bin/docker rm -f sampleweb-%i
+ExecStartPre=/usr/bin/docker pull msanterre/sampleweb
+
+ExecStart=/bin/bash -c &#39;/usr/bin/docker run --name sampleweb-%i \
+-p 4444:80 msanterre/sampleweb&#39;
+
+[X-Fleet]
+X-Conflicts=sampleweb@*.service
+&lt;/code&gt;&lt;/pre&gt;
+&lt;/div&gt;
+
+&lt;p&gt;This is a pretty standard service file. If you don’t understand what’s going on here, &lt;a href=&quot;https://coreos.com/fleet/docs/latest/launching-containers-fleet.html&quot;&gt;please go here&lt;/a&gt; to see the official fleet documentation.&lt;/p&gt;
+
+&lt;p&gt;And that should get your container running on fleet! Success!&lt;/p&gt;
+
+&lt;p&gt;The problem now is that fleet starts on &lt;em&gt;one&lt;/em&gt; of your machines, so where does your DNS point to?&lt;/p&gt;
+
+&lt;p&gt;If you’re an experience AWS user, you know to &lt;a href=&quot;http://docs.aws.amazon.com/ElasticLoadBalancing/latest/DeveloperGuide/using-domain-names-with-elb.html&quot;&gt;use Route 53 to point to an Elastic Load Balancer (ELB)&lt;/a&gt;.&lt;/p&gt;
+
+&lt;p&gt;Well now you have a way to point your domain to your machines, you could just add all your fleet machines to your ELB instance and call it a day.&lt;/p&gt;
+
+&lt;p&gt;Health checks on ELB keep checking if your app is up on the specified port (4444 in this case). When it’s launched on one of the machine, it will eventually pass the ELB health check and will start receiving traffic. When it dies, it will fail the health check a few times and stop getting traffic. &lt;strong&gt;This method will make it possible for people to hit a stopped application until the AWS fails the health check&lt;/strong&gt;&lt;/p&gt;
+
+&lt;p&gt;If this is good enough for you, good! It makes things pretty simple. If not, just keep on reading.&lt;/p&gt;
+
+&lt;p&gt;Make these additions to your service file:&lt;/p&gt;
+
+&lt;p&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;ExecStartPre=/usr/bin/docker pull anigeo/awscli&lt;/code&gt;&lt;/p&gt;
+
+&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;ExecStartPost=/bin/bash -c &#39;\
+/usr/bin/docker run --rm \
+-e AWS_SECRET_ACCESS_KEY=`etcdctl get /aws/secret_access_key` \
+-e AWS_ACCESS_KEY_ID=`etcdctl get /aws/access_key_id` \
+-e AWS_DEFAULT_REGION=`etcdctl get /aws/region`  \
+anigeo/awscli elb register-instances-with-load-balancer --load-balancer-name sampleweb --instances $(wget -q -O - http://169.254.169.254/latest/meta-data/instance-id)&#39;
+
+ExecStop=/bin/bash -c &#39;\
+/usr/bin/docker run --rm \
+-e AWS_SECRET_ACCESS_KEY=`etcdctl get /aws/secret_access_key` \
+-e AWS_ACCESS_KEY_ID=`etcdctl get /aws/access_key_id` \
+-e AWS_DEFAULT_REGION=`etcdctl get /aws/region`  \
+anigeo/awscli elb deregister-instances-from-load-balancer --load-balancer-name sampleweb --instances $(wget -q -O - http://169.254.169.254/latest/meta-data/instance-id)&#39;
+&lt;/code&gt;&lt;/pre&gt;
+&lt;/div&gt;
+
+&lt;p&gt;&lt;strong&gt;Note: Make sure your aws credetials are in etcd&lt;/strong&gt;&lt;/p&gt;
+
+&lt;p&gt;Everything should stay the same for you except &lt;strong&gt;sampleweb&lt;/strong&gt;.&lt;/p&gt;
+
+&lt;p&gt;This will register your application onto the ELB when it starts and deregister it when you stop it. This way you should have no one hitting dead applications.&lt;/p&gt;
+
+&lt;h3 id=&quot;final-file&quot;&gt;Final file&lt;/h3&gt;
+
+&lt;p&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;sampleweb@.service&lt;/code&gt;&lt;/p&gt;
+
+&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;Description=Sample Web App
+After=docker.service
+Requires=docker.service
+
+[Service]
+User=core
+Restart=always
+
+ExecStartPre=-/usr/bin/docker stop sampleweb-%i
+ExecStartPre=-/usr/bin/docker rm -f sampleweb-%i
+ExecStartPre=/usr/bin/docker pull msanterre/sampleweb
+ExecStartPre=/usr/bin/docker pull anigeo/awscli
+
+ExecStart=/bin/bash -c &#39;/usr/bin/docker run --name sampleweb-%i \
+-p 4444:80 msanterre/sampleweb&#39;
+
+ExecStartPost=/bin/bash -c &#39;\
+/usr/bin/docker run --rm \
+-e AWS_SECRET_ACCESS_KEY=`etcdctl get /aws/secret_access_key` \
+-e AWS_ACCESS_KEY_ID=`etcdctl get /aws/access_key_id` \
+-e AWS_DEFAULT_REGION=`etcdctl get /aws/region`  \
+anigeo/awscli elb register-instances-with-load-balancer --load-balancer-name sampleweb --instances $(wget -q -O - http://169.254.169.254/latest/meta-data/instance-id)&#39;
+
+ExecStop=/bin/bash -c &#39;\
+/usr/bin/docker run --rm \
+-e AWS_SECRET_ACCESS_KEY=`etcdctl get /aws/secret_access_key` \
+-e AWS_ACCESS_KEY_ID=`etcdctl get /aws/access_key_id` \
+-e AWS_DEFAULT_REGION=`etcdctl get /aws/region`  \
+anigeo/awscli elb deregister-instances-from-load-balancer --load-balancer-name sampleweb --instances $(wget -q -O - http://169.254.169.254/latest/meta-data/instance-id)&#39;
+
+[X-Fleet]
+X-Conflicts=sampleweb@*.service
+&lt;/code&gt;&lt;/pre&gt;
+&lt;/div&gt;
+</description>
+        <pubDate>Thu, 05 May 2016 22:00:00 -0700</pubDate>
+        <link>http://alpacalunchbox.com/2016/05/05/registering-fleet-on-aws-elb.html</link>
+        <guid isPermaLink="true">http://alpacalunchbox.com/2016/05/05/registering-fleet-on-aws-elb.html</guid>
+        
+        
+      </item>
     
       <item>
         <title>Building lightweight APIs with Go&#39;s Gorilla multiplexer and Negroni</title>
