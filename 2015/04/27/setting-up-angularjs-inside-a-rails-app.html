@@ -88,7 +88,7 @@
 
 <p><em>config/routes.rb</em></p>
 
-<div class="highlighter-rouge"><pre class="highlight"><code><span class="c1"># The root path</span>
+<div class="language-ruby highlighter-rouge"><pre class="highlight"><code><span class="c1"># The root path</span>
 <span class="n">get</span> <span class="s2">"/angularjs"</span><span class="p">,</span> <span class="ss">to: </span><span class="s2">"angularjs#index"</span>
 <span class="c1"># Redirect any requests to other paths to</span>
 <span class="n">get</span> <span class="s2">"/angularjs/*path"</span><span class="p">,</span> <span class="ss">to: </span><span class="s2">"angularjs#index"</span>
@@ -102,7 +102,7 @@
 
 <p><em>app/controller/angularjs_controller.rb</em></p>
 
-<div class="highlighter-rouge"><pre class="highlight"><code><span class="k">class</span> <span class="nc">AngularjsController</span> <span class="o">&lt;</span> <span class="no">ApplicationController</span>
+<div class="language-ruby highlighter-rouge"><pre class="highlight"><code><span class="k">class</span> <span class="nc">AngularjsController</span> <span class="o">&lt;</span> <span class="no">ApplicationController</span>
   <span class="k">def</span> <span class="nf">index</span>
   <span class="k">end</span>
 <span class="k">end</span>
@@ -114,7 +114,7 @@
 
 <p><em>app/views/layouts/angularjs.html.erb</em></p>
 
-<div class="highlighter-rouge"><pre class="highlight"><code><span class="cp">&lt;!DOCTYPE html&gt;</span>
+<div class="language-erb highlighter-rouge"><pre class="highlight"><code><span class="cp">&lt;!DOCTYPE html&gt;</span>
 <span class="nt">&lt;html&gt;</span>
 <span class="nt">&lt;head&gt;</span>
   <span class="nt">&lt;title&gt;</span>∆ngular<span class="nt">&lt;/title&gt;</span>
@@ -146,7 +146,7 @@
 
 <p><em>app/javascripts/angularjs_app.js</em></p>
 
-<div class="highlighter-rouge"><pre class="highlight"><code><span class="c1">//= require angularjs_app/init.js</span>
+<div class="language-javascript highlighter-rouge"><pre class="highlight"><code><span class="c1">//= require angularjs_app/init.js</span>
 <span class="c1">//= require angularjs_app/module1/index.js</span>
 <span class="c1">//= require angularjs_app/module/2</span>
 </code></pre>
@@ -154,7 +154,7 @@
 
 <p><em>app/javascripts/angularjs_app/init.js</em></p>
 
-<div class="highlighter-rouge"><pre class="highlight"><code><span class="nx">angular</span><span class="p">.</span><span class="nx">module</span><span class="p">(</span><span class="s2">"myapp"</span><span class="p">,</span> <span class="p">[</span>
+<div class="language-javascript highlighter-rouge"><pre class="highlight"><code><span class="nx">angular</span><span class="p">.</span><span class="nx">module</span><span class="p">(</span><span class="s2">"myapp"</span><span class="p">,</span> <span class="p">[</span>
   <span class="s2">"ngRoute"</span><span class="p">,</span>
   <span class="s2">"ngResource"</span><span class="p">,</span>
   <span class="c1">// ...</span>
@@ -175,6 +175,29 @@
 
 </article>
 
+<div id="disqus_thread"></div>
+
+<script>
+
+/**
+ *  RECOMMENDED CONFIGURATION VARIABLES: EDIT AND UNCOMMENT THE SECTION BELOW TO INSERT DYNAMIC VALUES FROM YOUR PLATFORM OR CMS.
+ *  LEARN WHY DEFINING THESE VARIABLES IS IMPORTANT: https://disqus.com/admin/universalcode/#configuration-variables */
+/*
+var disqus_config = function () {
+    this.page.url = 'http://alpacalunchbox.com';  // Replace PAGE_URL with your page's canonical URL variable
+    this.page.identifier = "Setting up AngularJS inside a rails app"; // Replace PAGE_IDENTIFIER with your page's unique identifier variable
+};
+*/
+(function() { // DON'T EDIT BELOW THIS LINE
+    var d = document, s = d.createElement('script');
+    s.src = '//alpacalunchbox.disqus.com/embed.js';
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+})();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+
+
       </div>
     </div>
 
@@ -188,7 +211,7 @@
       <div class="footer-col footer-col-1">
         <ul class="contact-list">
           <li>Alpaca Lunchbox</li>
-          <li><a href="mailto:info@alpacalunchbox.com">info@alpacalunchbox.com</a></li>
+          <li><a href="mailto:max@alpacalunchbox.com">max@alpacalunchbox.com</a></li>
         </ul>
       </div>
 
@@ -213,7 +236,7 @@
       </div>
 
       <div class="footer-col footer-col-3">
-        <p>Alpaca Lunchbox is a small ruby, javacript and elixir software company located in Vancouver, BC.
+        <p>Alpaca Lunchbox is a small ruby, JS and elixir software consulting agency located in Vancouver, BC.
 </p>
       </div>
     </div>
