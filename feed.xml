@@ -6,25 +6,106 @@
 </description>
     <link>http://alpacalunchbox.com/</link>
     <atom:link href="http://alpacalunchbox.com/feed.xml" rel="self" type="application/rss+xml"/>
-    <pubDate>Mon, 29 Aug 2016 16:58:38 -0700</pubDate>
-    <lastBuildDate>Mon, 29 Aug 2016 16:58:38 -0700</lastBuildDate>
+    <pubDate>Thu, 01 Sep 2016 16:17:03 -0700</pubDate>
+    <lastBuildDate>Thu, 01 Sep 2016 16:17:03 -0700</lastBuildDate>
     <generator>Jekyll v3.2.1</generator>
     
       <item>
-        <title>Let's build a database - Part 1: The basics</title>
-        <description>&lt;h3 id=&quot;why&quot;&gt;Why?&lt;/h3&gt;
+        <title>Digging into redis snapshotting</title>
+        <description>&lt;h1 id=&quot;digging-into-redis-snapshotting&quot;&gt;Digging into redis snapshotting&lt;/h1&gt;
 
-&lt;p&gt;Most people these days use a database. They’re pretty much the centerpoint of every web application. Pretty much everyone knows how to use them, which is made pretty easy these days. You learn the most popular ORM for your language and then that pretty much all your data needs.&lt;/p&gt;
+&lt;p&gt;There’s a very important linux setting to change when you set up a redis server on an instance: &lt;strong&gt;vm.overcommit = 1&lt;/strong&gt;.&lt;/p&gt;
+
+&lt;p&gt;If you haven’t set it up yet, you should do it now. Without it you’re essentially limited to half the RAM available on your machine, after that redis will be unable to create snapshots.&lt;/p&gt;
+
+&lt;p&gt;The high level steps of redis snapshots is this:&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;Redis forks its process&lt;/li&gt;
+  &lt;li&gt;The parent continues on to accept requests&lt;/li&gt;
+  &lt;li&gt;The child converts the working memory into the rdb format and saves it to disk&lt;/li&gt;
+  &lt;li&gt;The old rdb file is removed and replaced by the new one&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;&lt;a href=&quot;https://en.wikipedia.org/wiki/Fork_(system_call)&quot;&gt;Forking is a UNIX system call&lt;/a&gt; that makes a replica of the process that calls it. This means that the child will have a copy of all of the memory that the parent had.&lt;/p&gt;
+
+&lt;p&gt;This means that when your 10GB redis instance forks, you will now have 2 processes with each 10GB of data.&lt;/p&gt;
+
+&lt;p&gt;That sounds ridiculous right?&lt;/p&gt;
+
+&lt;p&gt;This should mean that you could only use about half of the RAM available on your machine when redis saves snapshots. Threads would be a much better way.&lt;/p&gt;
+
+&lt;p&gt;Well, there’s something called &lt;a href=&quot;https://en.wikipedia.org/wiki/Copy-on-write&quot;&gt;Copy on write&lt;/a&gt; (CoW) which makes it actually usable.&lt;/p&gt;
+
+&lt;p&gt;This allows processes created by forking to use the parent process’ memory until a process updates that memory page. If the parent writes to its memory, it’ll create a new memory page and write there instead, but the child process will still reference the old memory page.&lt;/p&gt;
+
+&lt;p&gt;That’s cool and all, but why do you need &lt;strong&gt;vm.overcommit = 1&lt;/strong&gt;?&lt;/p&gt;
+
+&lt;p&gt;Overcomitting is allowing a process to allocate more memory than is physically available on the system. You’re betting on never &lt;em&gt;really&lt;/em&gt; having to use it.&lt;/p&gt;
+
+&lt;p&gt;&lt;a href=&quot;https://www.kernel.org/doc/Documentation/vm/overcommit-accounting&quot;&gt;These are your options&lt;/a&gt;&lt;/p&gt;
+
+&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;0	-	Heuristic overcommit handling. Obvious overcommits of
+		address space are refused. Used for a typical system. It
+		ensures a seriously wild allocation fails while allowing
+		overcommit to reduce swap usage.  root is allowed to
+		allocate slightly more memory in this mode. This is the
+		default.
+
+1	-	Always overcommit. Appropriate for some scientific
+		applications. Classic example is code using sparse arrays
+		and just relying on the virtual memory consisting almost
+		entirely of zero pages.
+
+2	-	Don't overcommit. The total address space commit
+		for the system is not permitted to exceed swap + a
+		configurable amount (default is 50%) of physical RAM.
+		Depending on the amount you use, in most situations
+		this means a process will not be killed while accessing
+		pages but will receive errors on memory allocation as
+		appropriate.
+
+		Useful for applications that want to guarantee their
+		memory allocations will be available in the future
+		without having to initialize every page.
+&lt;/code&gt;&lt;/pre&gt;
+&lt;/div&gt;
+
+&lt;p&gt;You typically want to go for 0 or 2. Allowing a program to allocate more memory than is available will result in a sudden crash if it tries to actually use memory that’s not available.&lt;/p&gt;
+
+&lt;p&gt;&lt;strong&gt;Why 1 then?&lt;/strong&gt;&lt;/p&gt;
+
+&lt;p&gt;When you fork a process, you ask the system to allocate you the same amount of memory as the parent process. Because of copy on write, you’re not physically using double the memory, but if one of the processes change the value in the memory, it will need to physically allocate enough space for the new copy, while keeping the old copy around for the other process. In practice it’s highly unlikely to cause a crash, so it’s well worth the gamble.&lt;/p&gt;
+</description>
+        <pubDate>Thu, 01 Sep 2016 00:00:00 -0700</pubDate>
+        <link>http://alpacalunchbox.com/2016/09/01/digging-into-redis-snapshotting.html</link>
+        <guid isPermaLink="true">http://alpacalunchbox.com/2016/09/01/digging-into-redis-snapshotting.html</guid>
+        
+        
+      </item>
+    
+      <item>
+        <title>Let's build a simple database - Part 1: The basics</title>
+        <description>&lt;h3 id=&quot;why-build-a-database&quot;&gt;Why build a database?&lt;/h3&gt;
+
+&lt;p&gt;Most people these days use a database. They’re pretty much the centerpoint of every web application. Almost everyone knows how to use them, which they’re made easy to use these days. You learn the most popular ORM for your language and that’s good enough for your data needs.&lt;/p&gt;
 
 &lt;p&gt;For most people that’s enough for what they need to handle, but when you get into a higher scale, either be it large datasets, very high throughput, or complex queries, it becomes obvious that you need to dig deeper.&lt;/p&gt;
 
 &lt;p&gt;So why spend a bunch of time learning this now? You can just learn it when you need to, &lt;strong&gt;if&lt;/strong&gt; you need to.&lt;/p&gt;
 
-&lt;p&gt;Well, because you might &lt;strong&gt;need&lt;/strong&gt; to at 6pm, before going to dinner on the first day of your holiday (Yes I’m speaking from experience). It can take hours, even days to recover from a database failure. The more data you have, the slower everything moves. Sometimes you could even &lt;strong&gt;lose data&lt;/strong&gt;.&lt;/p&gt;
+&lt;p&gt;Well, because you might &lt;strong&gt;need&lt;/strong&gt; to at 6pm, before going to dinner on the first day of your holiday. (Yes I’m speaking from experience), I was at a tech conference when I received a call from the CEO of my company: “Everything is down, nothing is working”.
+After a quick look, the error was coming from redis, which we used in almost every aspect of our app.&lt;/p&gt;
 
-&lt;p&gt;The more you know, the more you can avoid disaster.&lt;/p&gt;
+&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;Redis::CommandError: MISCONF Redis is configured to save RDB snapshots, but is currently not able to persist on disk. Commands that may modify the data set are disabled. Please check Redis logs for details about the error.
+&lt;/code&gt;&lt;/pre&gt;
+&lt;/div&gt;
 
-&lt;p&gt;I’m not going to assume any knowledge, so let’s start with the very, very basic.&lt;/p&gt;
+&lt;p&gt;I hadn’t set up &lt;code class=&quot;highlighter-rouge&quot;&gt;vm.overcommit = 1&lt;/code&gt; on the server. &lt;a href=&quot;/2016/09/01/digging-into-redis-snapshotting.html&quot;&gt;This meant that redis couldn’t do a background save since the system wouldn’t give it enough memory and failed even though it still had 10GB free memory.&lt;/a&gt;&lt;/p&gt;
+
+&lt;p&gt;It was an interesting lesson, but I would’ve preferred not learning it the hard way. The more you know, the more you can avoid disaster.&lt;/p&gt;
+
+&lt;p&gt;I’m not going to assume any knowledge of how databases work, so let’s start with the basic building blocks.&lt;/p&gt;
 
 &lt;p&gt;We’ll start with something that acts a bit like Redis. Actually more simple than redis: Only the GET, SET and DEL operations of redis.&lt;/p&gt;
 
@@ -40,7 +121,7 @@
 
 &lt;h3 id=&quot;lets-build-it&quot;&gt;Let’s build it!&lt;/h3&gt;
 
-&lt;p&gt;&lt;em&gt;NOTE: I won’t write all the code necessary every time, so &lt;a href=&quot;https://github.com/msanterre/potatodb/blob/1-basic/main.go&quot;&gt;you can consult this page&lt;/a&gt; to get the working version&lt;/em&gt;&lt;/p&gt;
+&lt;p&gt;&lt;em&gt;NOTE: I will only paste snippets, &lt;a href=&quot;https://github.com/msanterre/potatodb/blob/1-basic/main.go&quot;&gt;you can consult this page&lt;/a&gt; to get the full version&lt;/em&gt;&lt;/p&gt;
 
 &lt;h4 id=&quot;the-process&quot;&gt;The process&lt;/h4&gt;
 &lt;p&gt;Let’s keep our promise of simplicity and go with the simplest way to make an API over the network: an HTTP API.&lt;/p&gt;
@@ -56,7 +137,7 @@
 
 &lt;h4 id=&quot;the-data&quot;&gt;The data&lt;/h4&gt;
 
-&lt;p&gt;It should be pretty obvious what needs to go here. A map (or hash, hashmap) is very commonly used for key/value storage. So let’s just Go’s internal map data structure.&lt;/p&gt;
+&lt;p&gt;It’s pretty clear what needs to go here. A map (or hash, hashmap) is very commonly used for key/value storage. So let’s just Go’s internal map data structure.&lt;/p&gt;
 
 &lt;div class=&quot;language-golang highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;k&quot;&gt;var&lt;/span&gt;&lt;span class=&quot;x&quot;&gt; &lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Data&lt;/span&gt;&lt;span class=&quot;x&quot;&gt; &lt;/span&gt;&lt;span class=&quot;k&quot;&gt;map&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;string&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;string&lt;/span&gt;&lt;span class=&quot;x&quot;&gt;
 

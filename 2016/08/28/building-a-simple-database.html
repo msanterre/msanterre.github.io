@@ -6,8 +6,8 @@
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta name="viewport" content="width=device-width, initial-scale=1">
 
-  <title>Let&#39;s build a database - Part 1: The basics</title>
-  <meta name="description" content="Why?">
+  <title>Let&#39;s build a simple database - Part 1: The basics</title>
+  <meta name="description" content="Why build a database?">
 
   <link rel="stylesheet" href="/css/main.css">
   <link rel="canonical" href="http://alpacalunchbox.com/2016/08/28/building-a-simple-database.html">
@@ -53,24 +53,31 @@
         <article class="post" itemscope itemtype="http://schema.org/BlogPosting">
 
   <header class="post-header">
-    <h1 class="post-title" itemprop="name headline">Let's build a database - Part 1: The basics</h1>
+    <h1 class="post-title" itemprop="name headline">Let's build a simple database - Part 1: The basics</h1>
     <p class="post-meta"><time datetime="2016-08-28T00:00:00-07:00" itemprop="datePublished">Aug 28, 2016</time></p>
   </header>
 
   <div class="post-content" itemprop="articleBody">
-    <h3 id="why">Why?</h3>
+    <h3 id="why-build-a-database">Why build a database?</h3>
 
-<p>Most people these days use a database. They’re pretty much the centerpoint of every web application. Pretty much everyone knows how to use them, which is made pretty easy these days. You learn the most popular ORM for your language and then that pretty much all your data needs.</p>
+<p>Most people these days use a database. They’re pretty much the centerpoint of every web application. Almost everyone knows how to use them, which they’re made easy to use these days. You learn the most popular ORM for your language and that’s good enough for your data needs.</p>
 
 <p>For most people that’s enough for what they need to handle, but when you get into a higher scale, either be it large datasets, very high throughput, or complex queries, it becomes obvious that you need to dig deeper.</p>
 
 <p>So why spend a bunch of time learning this now? You can just learn it when you need to, <strong>if</strong> you need to.</p>
 
-<p>Well, because you might <strong>need</strong> to at 6pm, before going to dinner on the first day of your holiday (Yes I’m speaking from experience). It can take hours, even days to recover from a database failure. The more data you have, the slower everything moves. Sometimes you could even <strong>lose data</strong>.</p>
+<p>Well, because you might <strong>need</strong> to at 6pm, before going to dinner on the first day of your holiday. (Yes I’m speaking from experience), I was at a tech conference when I received a call from the CEO of my company: “Everything is down, nothing is working”.
+After a quick look, the error was coming from redis, which we used in almost every aspect of our app.</p>
 
-<p>The more you know, the more you can avoid disaster.</p>
+<div class="highlighter-rouge"><pre class="highlight"><code>Redis::CommandError: MISCONF Redis is configured to save RDB snapshots, but is currently not able to persist on disk. Commands that may modify the data set are disabled. Please check Redis logs for details about the error.
+</code></pre>
+</div>
 
-<p>I’m not going to assume any knowledge, so let’s start with the very, very basic.</p>
+<p>I hadn’t set up <code class="highlighter-rouge">vm.overcommit = 1</code> on the server. <a href="/2016/09/01/digging-into-redis-snapshotting.html">This meant that redis couldn’t do a background save since the system wouldn’t give it enough memory and failed even though it still had 10GB free memory.</a></p>
+
+<p>It was an interesting lesson, but I would’ve preferred not learning it the hard way. The more you know, the more you can avoid disaster.</p>
+
+<p>I’m not going to assume any knowledge of how databases work, so let’s start with the basic building blocks.</p>
 
 <p>We’ll start with something that acts a bit like Redis. Actually more simple than redis: Only the GET, SET and DEL operations of redis.</p>
 
@@ -86,7 +93,7 @@
 
 <h3 id="lets-build-it">Let’s build it!</h3>
 
-<p><em>NOTE: I won’t write all the code necessary every time, so <a href="https://github.com/msanterre/potatodb/blob/1-basic/main.go">you can consult this page</a> to get the working version</em></p>
+<p><em>NOTE: I will only paste snippets, <a href="https://github.com/msanterre/potatodb/blob/1-basic/main.go">you can consult this page</a> to get the full version</em></p>
 
 <h4 id="the-process">The process</h4>
 <p>Let’s keep our promise of simplicity and go with the simplest way to make an API over the network: an HTTP API.</p>
@@ -102,7 +109,7 @@
 
 <h4 id="the-data">The data</h4>
 
-<p>It should be pretty obvious what needs to go here. A map (or hash, hashmap) is very commonly used for key/value storage. So let’s just Go’s internal map data structure.</p>
+<p>It’s pretty clear what needs to go here. A map (or hash, hashmap) is very commonly used for key/value storage. So let’s just Go’s internal map data structure.</p>
 
 <div class="language-golang highlighter-rouge"><pre class="highlight"><code><span class="k">var</span><span class="x"> </span><span class="n">Data</span><span class="x"> </span><span class="k">map</span><span class="p">[</span><span class="kt">string</span><span class="p">]</span><span class="kt">string</span><span class="x">
 
@@ -188,7 +195,7 @@ func main() {
 /*
 var disqus_config = function () {
     this.page.url = 'http://alpacalunchbox.com';  // Replace PAGE_URL with your page's canonical URL variable
-    this.page.identifier = "Let's build a database - Part 1: The basics"; // Replace PAGE_IDENTIFIER with your page's unique identifier variable
+    this.page.identifier = "Let's build a simple database - Part 1: The basics"; // Replace PAGE_IDENTIFIER with your page's unique identifier variable
 };
 */
 (function() { // DON'T EDIT BELOW THIS LINE
