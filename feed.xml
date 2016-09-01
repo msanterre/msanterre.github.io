@@ -6,15 +6,13 @@
 </description>
     <link>http://alpacalunchbox.com/</link>
     <atom:link href="http://alpacalunchbox.com/feed.xml" rel="self" type="application/rss+xml"/>
-    <pubDate>Thu, 01 Sep 2016 16:17:03 -0700</pubDate>
-    <lastBuildDate>Thu, 01 Sep 2016 16:17:03 -0700</lastBuildDate>
+    <pubDate>Thu, 01 Sep 2016 16:38:43 -0700</pubDate>
+    <lastBuildDate>Thu, 01 Sep 2016 16:38:43 -0700</lastBuildDate>
     <generator>Jekyll v3.2.1</generator>
     
       <item>
         <title>Digging into redis snapshotting</title>
-        <description>&lt;h1 id=&quot;digging-into-redis-snapshotting&quot;&gt;Digging into redis snapshotting&lt;/h1&gt;
-
-&lt;p&gt;There’s a very important linux setting to change when you set up a redis server on an instance: &lt;strong&gt;vm.overcommit = 1&lt;/strong&gt;.&lt;/p&gt;
+        <description>&lt;p&gt;There’s a very important linux setting to change when you set up a redis server on an instance: &lt;strong&gt;vm.overcommit = 1&lt;/strong&gt;.&lt;/p&gt;
 
 &lt;p&gt;If you haven’t set it up yet, you should do it now. Without it you’re essentially limited to half the RAM available on your machine, after that redis will be unable to create snapshots.&lt;/p&gt;
 
@@ -33,9 +31,9 @@
 
 &lt;p&gt;That sounds ridiculous right?&lt;/p&gt;
 
-&lt;p&gt;This should mean that you could only use about half of the RAM available on your machine when redis saves snapshots. Threads would be a much better way.&lt;/p&gt;
+&lt;p&gt;On a 20GB RAM machine, you could only ever use 10GB of it, since you’d need to keep 10GB for the snapshot process. This doesn’t really make sense. That’s a huge amount of waste.&lt;/p&gt;
 
-&lt;p&gt;Well, there’s something called &lt;a href=&quot;https://en.wikipedia.org/wiki/Copy-on-write&quot;&gt;Copy on write&lt;/a&gt; (CoW) which makes it actually usable.&lt;/p&gt;
+&lt;p&gt;Fortunately, there’s something brilliant called &lt;a href=&quot;https://en.wikipedia.org/wiki/Copy-on-write&quot;&gt;Copy on write&lt;/a&gt; (CoW) which solves this issue.&lt;/p&gt;
 
 &lt;p&gt;This allows processes created by forking to use the parent process’ memory until a process updates that memory page. If the parent writes to its memory, it’ll create a new memory page and write there instead, but the child process will still reference the old memory page.&lt;/p&gt;
 
@@ -43,7 +41,7 @@
 
 &lt;p&gt;Overcomitting is allowing a process to allocate more memory than is physically available on the system. You’re betting on never &lt;em&gt;really&lt;/em&gt; having to use it.&lt;/p&gt;
 
-&lt;p&gt;&lt;a href=&quot;https://www.kernel.org/doc/Documentation/vm/overcommit-accounting&quot;&gt;These are your options&lt;/a&gt;&lt;/p&gt;
+&lt;p&gt;&lt;a href=&quot;https://www.kernel.org/doc/Documentation/vm/overcommit-accounting&quot;&gt;These are the system options:&lt;/a&gt;&lt;/p&gt;
 
 &lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;0	-	Heuristic overcommit handling. Obvious overcommits of
 		address space are refused. Used for a typical system. It

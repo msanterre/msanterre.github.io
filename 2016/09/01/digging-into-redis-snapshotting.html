@@ -7,7 +7,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
 
   <title>Digging into redis snapshotting</title>
-  <meta name="description" content="Digging into redis snapshotting">
+  <meta name="description" content="There’s a very important linux setting to change when you set up a redis server on an instance: vm.overcommit = 1.">
 
   <link rel="stylesheet" href="/css/main.css">
   <link rel="canonical" href="http://alpacalunchbox.com/2016/09/01/digging-into-redis-snapshotting.html">
@@ -58,9 +58,7 @@
   </header>
 
   <div class="post-content" itemprop="articleBody">
-    <h1 id="digging-into-redis-snapshotting">Digging into redis snapshotting</h1>
-
-<p>There’s a very important linux setting to change when you set up a redis server on an instance: <strong>vm.overcommit = 1</strong>.</p>
+    <p>There’s a very important linux setting to change when you set up a redis server on an instance: <strong>vm.overcommit = 1</strong>.</p>
 
 <p>If you haven’t set it up yet, you should do it now. Without it you’re essentially limited to half the RAM available on your machine, after that redis will be unable to create snapshots.</p>
 
@@ -79,9 +77,9 @@
 
 <p>That sounds ridiculous right?</p>
 
-<p>This should mean that you could only use about half of the RAM available on your machine when redis saves snapshots. Threads would be a much better way.</p>
+<p>On a 20GB RAM machine, you could only ever use 10GB of it, since you’d need to keep 10GB for the snapshot process. This doesn’t really make sense. That’s a huge amount of waste.</p>
 
-<p>Well, there’s something called <a href="https://en.wikipedia.org/wiki/Copy-on-write">Copy on write</a> (CoW) which makes it actually usable.</p>
+<p>Fortunately, there’s something brilliant called <a href="https://en.wikipedia.org/wiki/Copy-on-write">Copy on write</a> (CoW) which solves this issue.</p>
 
 <p>This allows processes created by forking to use the parent process’ memory until a process updates that memory page. If the parent writes to its memory, it’ll create a new memory page and write there instead, but the child process will still reference the old memory page.</p>
 
@@ -89,7 +87,7 @@
 
 <p>Overcomitting is allowing a process to allocate more memory than is physically available on the system. You’re betting on never <em>really</em> having to use it.</p>
 
-<p><a href="https://www.kernel.org/doc/Documentation/vm/overcommit-accounting">These are your options</a></p>
+<p><a href="https://www.kernel.org/doc/Documentation/vm/overcommit-accounting">These are the system options:</a></p>
 
 <div class="highlighter-rouge"><pre class="highlight"><code>0	-	Heuristic overcommit handling. Obvious overcommits of
 		address space are refused. Used for a typical system. It
