@@ -77,11 +77,11 @@
 
 <p>That sounds ridiculous right?</p>
 
-<p>On a 20GB RAM machine, you could only ever use 10GB of it, since you’d need to keep 10GB for the snapshot process. This doesn’t really make sense. That’s a huge amount of waste.</p>
+<p>On a 20GB RAM machine, you would need to keep 10GB free just for the snapshot process. It’s incredibly wasteful.</p>
 
 <p>Fortunately, there’s something brilliant called <a href="https://en.wikipedia.org/wiki/Copy-on-write">Copy on write</a> (CoW) which solves this issue.</p>
 
-<p>This allows processes created by forking to use the parent process’ memory until a process updates that memory page. If the parent writes to its memory, it’ll create a new memory page and write there instead, but the child process will still reference the old memory page.</p>
+<p>This allows processes created by forking to use the parent process’ memory until a process updates that memory page. If the parent (or child) writes to its memory, it will create a new memory page and write there instead, but the child process will still reference the old memory page.</p>
 
 <p>That’s cool and all, but why do you need <strong>vm.overcommit = 1</strong>?</p>
 
@@ -115,11 +115,11 @@
 </code></pre>
 </div>
 
-<p>You typically want to go for 0 or 2. Allowing a program to allocate more memory than is available will result in a sudden crash if it tries to actually use memory that’s not available.</p>
+<p>You typically want to go for 0 or 2. Allowing a program to allocate more memory than is available will result in a sudden crash if it tries to actually use memory that’s not available. In most cases, this is a very bad thing. Especially when you’re dealing with a database.</p>
 
 <p><strong>Why 1 then?</strong></p>
 
-<p>When you fork a process, you ask the system to allocate you the same amount of memory as the parent process. Because of copy on write, you’re not physically using double the memory, but if one of the processes change the value in the memory, it will need to physically allocate enough space for the new copy, while keeping the old copy around for the other process. In practice it’s highly unlikely to cause a crash, so it’s well worth the gamble.</p>
+<p>Since the redis snapshot process is only used to dump memory to disk, it will not change any of its parent memory and it won’t last long enough for the parent to change a significant amount of values. Unless you’re very close to your physical limit, the case where there are enough changes done by the parent to go above the physical memory limit is very unlikely. This makes choosing <strong>always overcommit</strong> a very reasonable option for the snapshot fork.</p>
 
   </div>
 

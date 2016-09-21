@@ -6,8 +6,8 @@
 </description>
     <link>http://alpacalunchbox.com/</link>
     <atom:link href="http://alpacalunchbox.com/feed.xml" rel="self" type="application/rss+xml"/>
-    <pubDate>Thu, 01 Sep 2016 16:38:43 -0700</pubDate>
-    <lastBuildDate>Thu, 01 Sep 2016 16:38:43 -0700</lastBuildDate>
+    <pubDate>Wed, 21 Sep 2016 16:09:19 -0700</pubDate>
+    <lastBuildDate>Wed, 21 Sep 2016 16:09:19 -0700</lastBuildDate>
     <generator>Jekyll v3.2.1</generator>
     
       <item>
@@ -31,11 +31,11 @@
 
 &lt;p&gt;That sounds ridiculous right?&lt;/p&gt;
 
-&lt;p&gt;On a 20GB RAM machine, you could only ever use 10GB of it, since you’d need to keep 10GB for the snapshot process. This doesn’t really make sense. That’s a huge amount of waste.&lt;/p&gt;
+&lt;p&gt;On a 20GB RAM machine, you would need to keep 10GB free just for the snapshot process. It’s incredibly wasteful.&lt;/p&gt;
 
 &lt;p&gt;Fortunately, there’s something brilliant called &lt;a href=&quot;https://en.wikipedia.org/wiki/Copy-on-write&quot;&gt;Copy on write&lt;/a&gt; (CoW) which solves this issue.&lt;/p&gt;
 
-&lt;p&gt;This allows processes created by forking to use the parent process’ memory until a process updates that memory page. If the parent writes to its memory, it’ll create a new memory page and write there instead, but the child process will still reference the old memory page.&lt;/p&gt;
+&lt;p&gt;This allows processes created by forking to use the parent process’ memory until a process updates that memory page. If the parent (or child) writes to its memory, it will create a new memory page and write there instead, but the child process will still reference the old memory page.&lt;/p&gt;
 
 &lt;p&gt;That’s cool and all, but why do you need &lt;strong&gt;vm.overcommit = 1&lt;/strong&gt;?&lt;/p&gt;
 
@@ -69,11 +69,11 @@
 &lt;/code&gt;&lt;/pre&gt;
 &lt;/div&gt;
 
-&lt;p&gt;You typically want to go for 0 or 2. Allowing a program to allocate more memory than is available will result in a sudden crash if it tries to actually use memory that’s not available.&lt;/p&gt;
+&lt;p&gt;You typically want to go for 0 or 2. Allowing a program to allocate more memory than is available will result in a sudden crash if it tries to actually use memory that’s not available. In most cases, this is a very bad thing. Especially when you’re dealing with a database.&lt;/p&gt;
 
 &lt;p&gt;&lt;strong&gt;Why 1 then?&lt;/strong&gt;&lt;/p&gt;
 
-&lt;p&gt;When you fork a process, you ask the system to allocate you the same amount of memory as the parent process. Because of copy on write, you’re not physically using double the memory, but if one of the processes change the value in the memory, it will need to physically allocate enough space for the new copy, while keeping the old copy around for the other process. In practice it’s highly unlikely to cause a crash, so it’s well worth the gamble.&lt;/p&gt;
+&lt;p&gt;Since the redis snapshot process is only used to dump memory to disk, it will not change any of its parent memory and it won’t last long enough for the parent to change a significant amount of values. Unless you’re very close to your physical limit, the case where there are enough changes done by the parent to go above the physical memory limit is very unlikely. This makes choosing &lt;strong&gt;always overcommit&lt;/strong&gt; a very reasonable option for the snapshot fork.&lt;/p&gt;
 </description>
         <pubDate>Thu, 01 Sep 2016 00:00:00 -0700</pubDate>
         <link>http://alpacalunchbox.com/2016/09/01/digging-into-redis-snapshotting.html</link>
